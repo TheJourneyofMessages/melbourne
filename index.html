@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Journey of Messages</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #121212; color: rgb(249, 249, 249); }
+        .neon-blue { border: 2px solid #00d2ff; box-shadow: 0 0 10px #00d2ff; }
+        .neon-green { border: 2px solid #2ecc71; box-shadow: 0 0 10px #2ecc71; }
+        .glass-card { background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(10px); border-radius: 15px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 50; overflow-y: auto; }
+        .modal.active { display: flex; }
+        /* Mesaj yazma alanı için daha açık, beyaza yakın renk */
+        .input-bg { background-color: #b9bdbd; color: #111827; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center min-h-screen">
+
+    <div class="w-full max-w-md flex justify-end items-center mb-4">
+        <select id="lang-select" class="bg-gray-800 text-xs p-2 rounded-lg border border-gray-700 focus:outline-none focus:ring-1 focus:ring-cyan-500 cursor-pointer">
+            <option value="ar">Arabic</option>
+            <option value="zh">Chinese</option>
+            <option value="en" selected>English</option>
+            <option value="fa">Farsi</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="el">Greek</option>
+            <option value="hi">Hindi</option>
+            <option value="id">Indonesian</option>
+            <option value="it">Italian</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="pt">Portuguese</option>
+            <option value="pa">Punjabi</option>
+            <option value="ru">Russian</option>
+            <option value="es">Spanish</option>
+            <option value="tl">Tagalog</option>
+            <option value="th">Thai</option>
+            <option value="tr">Turkish</option>
+            <option value="vi">Vietnamese</option>
+        </select>
+    </div>
+
+    <div class="w-full max-w-md text-center mb-8">
+        <h1 id="ui-title" class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-3">
+            The Journey of Messages 🚴
+        </h1>
+        <p id="ui-subtitle" class="text-gray-400 text-sm leading-relaxed px-2">
+            The last person who scanned this QR left a message for you, and now it's your turn to leave a message for the next person.
+        </p>
+    </div>
+
+    <div class="w-full max-w-md glass-card neon-blue p-6 mb-4">
+        <p id="ui-prev-label" class="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-2">A Stranger Before You Left This:</p>
+        <div id="latest-msg-box" class="italic text-lg text-gray-100 leading-relaxed">"..."</div>
+        <div id="latest-author" class="text-[10px] text-gray-500 mt-4 uppercase tracking-tighter">— Loading...</div>
+    </div>
+
+    <div class="w-full max-w-md glass-card neon-green p-6 mb-6">
+        <div class="mb-4">
+            <label id="ui-nick-label" class="block text-green-400 text-[10px] font-bold uppercase mb-1 tracking-wider">Nickname</label>
+            <input id="user-name" type="text" class="w-full input-bg border-b-2 border-gray-300 p-3 rounded-t-lg focus:outline-none transition-colors shadow-inner font-bold text-base">
+        </div>
+        <div>
+            <label id="ui-msg-label" class="block text-green-400 text-[10px] font-bold uppercase mb-1 tracking-wider">Your Message</label>
+            <textarea id="user-msg" rows="3" class="w-full input-bg rounded-b-lg p-3 focus:outline-none transition-all shadow-inner font-medium text-base"></textarea>
+        </div>
+    </div>
+
+    <div class="w-full max-w-md flex flex-col gap-4">
+        <button id="send-btn" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg active:scale-95">SEND MESSAGE</button>
+        <button id="view-btn" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 border border-gray-700">VIEW ALL MESSAGES</button>
+    </div>
+
+    <div id="msg-modal" class="modal items-start justify-center p-4">
+        <div class="w-full max-w-md glass-card p-6 my-8 relative border border-gray-700">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl">&times;</button>
+            <h2 id="ui-modal-title" class="text-2xl font-bold mb-6 text-cyan-400">Global Message Chain</h2>
+            <div id="messages-list" class="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar"></div>
+            
+            <div class="mt-10 pt-6 border-t border-gray-800 text-center">
+                <p id="ui-coffee-text" class="text-sm text-gray-400 mb-6 italic">“A coffee would be a great companion on the journey of these messages ☕”⛰️</p>
+                <a href="https://www.buymeacoffee.com/melbournemessagebox" target="_blank" class="inline-block bg-[#FFDD00] text-black font-extrabold py-3 px-10 rounded-full shadow-xl transition transform hover:scale-105">
+                    Shout me a Coffee ☕
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIh-tPQeW43foZ3XyMUdjfO1xdxAH3nes",
+            authDomain: "melbourne-mystery.firebaseapp.com",
+            projectId: "melbourne-mystery",
+            storageBucket: "melbourne-mystery.firebasestorage.app",
+            messagingSenderId: "1056596554109",
+            appId: "1:1056596554109:web:b9d198d7e4762ebbc65c14",
+            measurementId: "G-1X4XTXZN3V"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const colRef = collection(db, "messages");
+
+        // Zaman Formatlama
+        const formatDate = (ts) => {
+            if(!ts) return "Just now";
+            const date = ts.toDate();
+            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + " " + 
+                   date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        };
+
+        // Sözlük (Arapça, Çince, Türkçe, Korece, Japonca Örnekli)
+// 20 DİLİN TAM ÇEVİRİSİ - REİS PAKETİ
+        const i18n = {
+            en: { title: "The Journey of Messages 🚴", subtitle: "The last person who scanned this QR left a message for you, and now it's your turn to leave a message for the next person.", prev: "A Stranger Before You Left This:", nick: "Nickname", msg: "Your Message", send: "SEND MESSAGE", view: "VIEW ALL MESSAGES", modal: "Global Message Chain", coffee: "A coffee would be a great companion on the journey of these messages ☕", bag: "Message in the bag! Ride continues. 🚲" },
+            tr: { title: "Mesajların Yolculuğu 🚴", subtitle: "Bu QR kodu okutan son kişi sana bir mesaj bıraktı; şimdi sıra sende, sıradaki kişi için bir mesaj bırak.", prev: "Senden Önceki Yabancı Şunu Bıraktı:", nick: "Takma Ad", msg: "Mesajın", send: "MESAJI GÖNDER", view: "TÜM MESAJLARI GÖR", modal: "Küresel Mesaj Zinciri", coffee: "Ben yokuşları senin yerine çıkıyorum. Efsaneye yakıt? ☕⛰️", bag: "Mesaj çantada! Yolculuk devam ediyor. 🚲" },
+            zh: { title: "消息之旅 🚴", subtitle: "扫描此二维码的最后一个人给你留下了信息，现在轮到你给下一个人留信息了。", prev: "在你之前的陌生人留下了这个：", nick: "昵称", msg: "你的留言", send: "发送消息", view: "查看所有消息", modal: "全球消息链", coffee: "我在为你爬坡。给传奇加点油？ ☕⛰️", bag: "消息已装袋！骑行继续。🚲" },
+            ko: { title: "메시지의 여정 🚴", subtitle: "이 QR을 스캔한 마지막 사람이 당신에게 메시지를 남겼고, 이제 다음 사람에게 메시지를 남길 차례입니다.", prev: "이전 사람이 메시지를 남겼습니다:", nick: "닉네임", msg: "메시지", send: "메시지 보내기", view: "전체 보기", modal: "메시지 체인", coffee: "당신을 위해 언덕을 오르고 있습니다. 전설을 응원해주세요? ☕⛰️", bag: "메시지 완료! 🚲" },
+            ja: { title: "メッセージの旅 🚴", subtitle: "このQRコードをスキャンした最後の人があなたにメッセージを残しました。今度はあなたが次の人にメッセージを残す番です。", prev: "前の人が残したメッセージ：", nick: "ニックネーム", msg: "メッセージ", send: "送信する", view: "すべて見る", modal: "メッセージチェーン", coffee: "あなたの代わりに坂を漕いでいます。伝説に燃料を？ ☕⛰️", bag: "メッセージを受け取りました！🚲" },
+            ar: { title: "رحلة الرسائل 🚴", subtitle: "الشخص الأخير الذي مسح رمز الاستجابة السريعة هذا ترك رسالة لك، والآن حان دورك لترك رسالة للشخص التالي.", prev: "ترك لك الشخص السابق رسالة:", nick: "الاسم المستعار", msg: "رسالتك", send: "إرسال الرسالة", view: "عرض جميع الرسائل", modal: "سلسلة الرسائل العالمية", coffee: "أنا أقود الدراجة في المرتفعات من أجلك. هل تدعم الأسطورة؟ ☕⛰️", bag: "الرسالة في الحقيبة! الرحلة تستمر. 🚲" },
+            hi: { title: "संदेशों की यात्रा 🚴", subtitle: "इस QR को स्कैन करने वाले अंतिम व्यक्ति ने आपके लिए एक संदेश छोड़ा है, और अब अगले व्यक्ति के लिए संदेश छोड़ने की आपकी बारी है।", prev: "पिछले व्यक्ति ने आपके लिए एक संदेश छोड़ा है:", nick: "उपनाम", msg: "आपका संदेश", send: "संदेश भेजें", view: "सभी संदेश देखें", modal: "वैश्विक संदेश श्रृंखला", coffee: "मैं पहाड़ियों पर पैडल मार रहा हूँ ताकि आपको न करना पड़े। लीजेंड का समर्थन करें? ☕⛰️", bag: "संदेश बैग में है! यात्रा जारी है। 🚲" },
+            es: { title: "El Viaje de los Mensajes 🚴", subtitle: "La última persona que escaneó este código QR te dejó un mensaje, y ahora es tu turno de dejar un mensaje para la siguiente persona.", prev: "Alguien dejó esto para ti:", nick: "Apodo", msg: "Tu Mensaje", send: "ENVIAR MENSAJE", view: "VER TODOS", modal: "Cadena de Mensajes", coffee: "Pedaleo por las colinas por ti. ¿Apoyas al leyenda? ☕⛰️", bag: "¡Mensaje enviado! 🚲" },
+            fr: { title: "Le Voyage des Messages 🚴", subtitle: "La dernière personne qui a scanné ce QR a laissé un message pour vous, et c'est maintenant à votre tour de laisser un message pour la prochaine personne.", prev: "Un inconnu a laissé ceci pour vous:", nick: "Surnom", msg: "Votre Message", send: "ENVOYER", view: "VOIR TOUT", modal: "Chaîne Globale", coffee: "Je pédale pour vous. Un petit café pour la légende ? ☕⛰️", bag: "Message en poche ! 🚲" },
+            de: { title: "Die Reise der Nachrichten 🚴", subtitle: "Die letzte Person, die diesen QR-Code gescannt hat, hat eine Nachricht für dich hinterlassen, und jetzt bist du an der Reihe, eine Nachricht für die nächste Person zu hinterlassen.", prev: "Jemand hat dies für dich hinterlassen:", nick: "Spitzname", msg: "Deine Nachricht", send: "SENDEN", view: "ALLE SEHEN", modal: "Nachrichtenkette", coffee: "Ich strample für dich die Berge hoch. Kaffee für die Legende? ☕⛰️", bag: "Nachricht ist im Sack! 🚲" },
+            it: { title: "Il Viaggio dei Messaggi 🚴", subtitle: "L'ultima persona che ha scansionato questo QR ha lasciato un messaggio per te, e ora è il tuo turno di lasciare un messaggio per la prossima persona.", prev: "Uno sconosciuto ha lasciato questo per te:", nick: "Soprannome", msg: "Il tuo Messaggio", send: "INVIA", view: "VEDI TUTTI", modal: "Catena di Messaggi", coffee: "Pedalo in salita per te. Caffè per la leggenda? ☕⛰️", bag: "Messaggio in borsa! 🚲" },
+            vi: { title: "Hành trình của những thông điệp 🚴", subtitle: "Người cuối cùng quét mã QR này đã để lại tin nhắn cho bạn, và giờ đến lượt bạn để lại tin nhắn cho người tiếp theo.", prev: "Người trước đó đã để lại lời nhắn:", nick: "Biệt danh", msg: "Tin nhắn của bạn", send: "GỬI TIN NHẮN", view: "XEM TẤT CẢ", modal: "Chuỗi tin nhắn", coffee: "Tôi đang đạp xe leo dốc thay bạn. Ủng hộ huyền thoại chứ? ☕⛰️", bag: "Đã nhận tin nhắn! 🚲" },
+            ru: { title: "Путешествие сообщений 🚴", subtitle: "Последний человек, который отсканировал этот QR-код, оставил для вас сообщение, и теперь ваша очередь оставить сообщение для следующего человека.", prev: "Кто-то оставил это для вас:", nick: "Никнейм", msg: "Ваше сообщение", send: "ОТПРАВИТЬ", view: "ПОСМОТРЕТЬ ВСЕ", modal: "Цепочка сообщений", coffee: "Я кручу педали за вас. Кофе для легенды? ☕⛰️", bag: "Сообщение в сумке! 🚲" },
+            pt: { title: "A Jornada das Mensagens 🚴", subtitle: "A última pessoa que escaneou este QR deixou uma mensagem para você, e agora é sua vez de deixar uma mensagem para a próxima pessoa.", prev: "Alguém deixou isso para você:", nick: "Apelido", msg: "Sua Mensagem", send: "ENVIAR", view: "VER TODOS", modal: "Corrente de Mensagens", coffee: "Pedalo por você. Café para a lenda? ☕⛰️", bag: "Mensagem enviada! 🚲" },
+            id: { title: "Perjalanan Pesan 🚴", subtitle: "Orang terakhir yang memindai QR ini meninggalkan pesan untukmu, dan sekarang giliranmu untuk meninggalkan pesan untuk orang berikutnya.", prev: "Seseorang meninggalkan ini untukmu:", nick: "Nama Panggilan", msg: "Pesanmu", send: "KIRIM PESAN", view: "LIHAT SEMUA", modal: "Rantai Pesan", coffee: "Saya mengayuh tanjakan untukmu. Dukung sang legenda? ☕⛰️", bag: "Pesan terkirim! 🚲" },
+            th: { title: "การเดินทางของข้อความ 🚴", subtitle: "คนสุดท้ายที่สแกน QR นี้ได้ฝากข้อความไว้ให้คุณ และตอนนี้ถึงตาคุณแล้วที่จะฝากข้อความให้คนถัดไป", prev: "มีคนฝากข้อความไว้ให้คุณ:", nick: "ชื่อเล่น", msg: "ข้อความของคุณ", send: "ส่งข้อความ", view: "ดูทั้งหมด", modal: "ข้อความระดับโลก", coffee: "ฉันกำลังปั่นจักรยานขึ้นเขาแทนคุณ เลี้ยงกาแฟตำนานหน่อยไหม? ☕⛰️", bag: "ส่งข้อความแล้ว! 🚲" },
+            tl: { title: "Ang Paglalakbay ng mga Mensahe 🚴", subtitle: "Ang huling taong nag-scan ng QR code na ito ay nag-iwan ng mensahe para sa iyo, at ngayon ay ikaw naman ang mag-iiwan ng mensahe para sa susunod na tao.", prev: "May nag-iwan nito para sa iyo:", nick: "Palayaw", msg: "Iyong Mensahe", send: "IPADALA", view: "TINGNAN LAHAT", modal: "Global Message Chain", coffee: "Nagpe-pedal ako para sa iyo. Kape para sa alamat? ☕⛰️", bag: "Mensahe ay nasa bag na! 🚲" },
+            fa: { title: "سفر پیام‌ها 🚴", subtitle: "آخرین کسی که این QR را اسکن کرد پیامی برای شما گذاشت، و حالا نوبت شماست که پیامی برای نفر بعدی بگذارید.", prev: "یک غریبه این را برای شما گذاشته:", nick: "نام مستعار", msg: "پیام شما", send: "ارسال پیام", view: "مشاهده همه", modal: "زنجیره پیام‌ها", coffee: "من به جای شما پا می‌زنم. قهوه برای اسطوره؟ ☕⛰️", bag: "پیام ارسال شد! 🚲" },
+            pa: { title: "ਸੁਨੇਹਿਆਂ ਦੀ ਯਾਤਰਾ 🚴", subtitle: "ਇਸ QR ਕੋਡ ਨੂੰ ਸਕੈਨ ਕਰਨ ਵਾਲੇ ਆਖਰੀ ਵਿਅਕਤੀ ਨੇ ਤੁਹਾਡੇ ਲਈ ਸੁਨੇਹਾ ਛੱਡਿਆ ਹੈ, ਅਤੇ ਹੁਣ ਤੁਹਾਡੀ ਵਾਰੀ ਹੈ ਅਗਲੇ ਵਿਅਕਤੀ ਲਈ ਸੁਨੇਹਾ ਛੱਡਣ ਦੀ।", prev: "ਪਿਛਲੇ ਵਿਅਕਤੀ ਨੇ ਤੁਹਾਡੇ ਲਈ ਇਹ ਛੱਡਿਆ ਹੈ:", nick: "ਉਪਨਾਮ", msg: "ਤੁਹਾਡਾ ਸੁਨੇਹਾ", send: "ਸੁਨੇਹਾ ਭੇਜੋ", view: "ਸਾਰੇ ਦੇਖੋ", modal: "ਸੁਨੇਹਾ ਚੇਨ", coffee: "ਮੈਂ ਤੁਹਾਡੇ ਲਈ ਪੈਡਲ ਮਾਰ ਰਿਹਾ ਹਾਂ। ਕੌਫੀ ਪਿਲਾਓਗੇ? ☕⛰️", bag: "ਸੁਨੇਹਾ ਮਿਲ ਗਿਆ! 🚲" },
+            el: { title: "Το Ταξίδι των Μηνυμάτων 🚴", subtitle: "Το τελευταίο άτομο που σάρωσε αυτόν τον κωδικό QR άφησε ένα μήνυμα για εσάς, και τώρα είναι η σειρά σας να αφήσετε ένα μήνυμα για το επόμενο άτομο.", prev: "Κάποιος άφησε αυτό για εσάς:", nick: "Όνομα", msg: "Το μήνυμά σας", send: "ΑΠΟΣΤΟΛΗ", view: "ΟΛΑ ΤΑ ΜΗΝΥΜΑΤΑ", modal: "Παγκόσμια Αλυσίδα", coffee: "Κάνω πεντάλ για εσάς. Καφέ για τον θρύλο; ☕⛰️", bag: "Το μήνυμα εστάλη! 🚲" }
+        };
+
+const updateUI = (lang) => {
+    const t = i18n[lang] || i18n.en; // Eğer dil bulunamazsa İngilizceye döner
+    
+    // Her bir ID'yi tek tek sözlükteki karşılığına bağlıyoruz
+    if(document.getElementById('ui-title')) document.getElementById('ui-title').innerText = t.title;
+    if(document.getElementById('ui-subtitle')) document.getElementById('ui-subtitle').innerText = t.subtitle;
+    if(document.getElementById('ui-prev-label')) document.getElementById('ui-prev-label').innerText = t.prev;
+    if(document.getElementById('ui-nick-label')) document.getElementById('ui-nick-label').innerText = t.nick;
+    if(document.getElementById('ui-msg-label')) document.getElementById('ui-msg-label').innerText = t.msg;
+    if(document.getElementById('send-btn')) document.getElementById('send-btn').innerText = t.send;
+    if(document.getElementById('view-btn')) document.getElementById('view-btn').innerText = t.view;
+    if(document.getElementById('ui-modal-title')) document.getElementById('ui-modal-title').innerText = t.modal;
+    if(document.getElementById('ui-coffee-text')) document.getElementById('ui-coffee-text').innerText = t.coffee;
+    
+    // Uyarı mesajını global değişkene atıyoruz
+    window.currentBagMsg = t.bag;
+};
+
+        document.getElementById('lang-select').onchange = (e) => updateUI(e.target.value);
+        updateUI('en');
+
+        // Son Mesaj
+        onSnapshot(query(colRef, orderBy("timestamp", "desc"), limit(1)), (snap) => {
+            if(!snap.empty) {
+                const data = snap.docs[0].data();
+                document.getElementById('latest-msg-box').innerText = `"${data.message}"`;
+                document.getElementById('latest-author').innerText = `— ${data.name || 'Someone'} • ${formatDate(data.timestamp)}`;
+            }
+        });
+
+        // Mesaj gönderim kontrolü için flag
+        let hasSubmittedMessage = localStorage.getItem('hasSubmittedMessage') === 'true';
+
+        // Mesaj Gönder
+        document.getElementById('send-btn').onclick = async () => {
+            const name = document.getElementById('user-name').value;
+            const message = document.getElementById('user-msg').value;
+            if(!message.trim()) return;
+            await addDoc(colRef, { name: name || "Anonymous", message, timestamp: serverTimestamp() });
+            document.getElementById('user-msg').value = "";
+            document.getElementById('user-name').value = "";
+            
+            // Mesaj gönderildi flag'ini ayarla
+            hasSubmittedMessage = true;
+            localStorage.setItem('hasSubmittedMessage', 'true');
+            
+            alert(window.currentBagMsg);
+        };
+
+        window.closeModal = () => document.getElementById('msg-modal').classList.remove('active');
+        document.getElementById('view-btn').onclick = () => {
+            // Önce mesaj gönderilip gönderilmediğini kontrol et
+            if (!hasSubmittedMessage) {
+                alert('Please leave a message first before viewing all messages! 📝');
+                return;
+            }
+            
+            document.getElementById('msg-modal').classList.add('active');
+            
+            // Coffee Legends koleksiyonunu yükle
+            const coffeesRef = collection(db, "coffees");
+            onSnapshot(query(coffeesRef, orderBy("timestamp", "desc")), (coffeeSnap) => {
+                const list = document.getElementById('messages-list');
+                let coffeeLegends = '';
+                
+                // Coffee Legends bölümünü hazırla
+                if (!coffeeSnap.empty) {
+                    const coffeeNames = coffeeSnap.docs.map(doc => doc.data().name).filter(n => n);
+                    if (coffeeNames.length > 0) {
+                        coffeeLegends = `
+                            <div class="bg-gradient-to-r from-cyan-500/0 to-blue-500/10 border-2 border-cyan-500 rounded-2xl p-6 mt-6">
+                                <h3 class="text-cyan-400 font-extrabold text-lg mb-4 flex items-center gap-2">
+                                    ☕ Coffee Legends
+                                </h3>
+                                <div class="flex flex-wrap gap-3">
+                                    ${coffeeNames.map(name => `<span class="text-cyan-300 text-sm font-semibold">⭐ ${name}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Mesajları yükle (önce mesajlar, sonra Coffee Legends)
+                onSnapshot(query(colRef, orderBy("timestamp", "desc")), (snap) => {
+                    const messagesHtml = snap.docs.map(doc => `
+                        <div class="bg-gray-900/80 p-4 rounded-xl border border-gray-700">
+                            <p class="text-sm text-gray-100 italic">"${doc.data().message}"</p>
+                            <p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-tighter">
+                                ${doc.data().name || 'Anonymous'} • ${formatDate(doc.data().timestamp)}
+                            </p>
+                        </div>
+                    `).join('');
+                    
+                    list.innerHTML = messagesHtml + coffeeLegends;
+                });
+            });
+        };
+    </script>
+</body>
+</html>
