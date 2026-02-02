@@ -14,7 +14,7 @@
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 50; overflow-y: auto; }
         .modal.active { display: flex; }
         /* Mesaj yazma alanı için daha açık, beyaza yakın renk */
-        .input-bg { background-color: #e1e8e8; color: #111827; }
+        .input-bg { background-color: #f4f8f8; color: #111827; }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #868e9c; border-radius: 10px; }
     </style>
@@ -52,7 +52,14 @@
                 The Journey of Messages
             </h1>
         </a>
-        <div class="text-4xl mb-3 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">🚴</div>
+        <div class="mb-3" style="transform: scaleX(-1);">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-12 h-12 mx-auto text-cyan-400" viewBox="0 0 24 24">
+                <circle cx="18.5" cy="17.5" r="3.5"/>
+                <circle cx="5.5" cy="17.5" r="3.5"/>
+                <circle cx="15" cy="5" r="1"/>
+                <path d="M12 17.5V14l-3-3 4-3 2 3h2"/>
+            </svg>
+        </div>
         <p id="ui-subtitle" class="text-gray-400 text-sm leading-relaxed px-2">
             The last person who scanned this QR left a message for you, and now it's your turn to leave a message for the next person.
         </p>
