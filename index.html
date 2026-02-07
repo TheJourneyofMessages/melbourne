@@ -183,17 +183,8 @@ const updateUI = (lang) => {
             }
         });
 
-        // Mesaj gönderim kontrolü için flag
-        let hasSubmittedMessage = localStorage.getItem('hasSubmittedMessage') === 'true';
-
         // Mesaj Gönder
         document.getElementById('send-btn').onclick = async () => {
-            // Daha önce mesaj gönderilmiş mi kontrol et
-            if (hasSubmittedMessage) {
-                alert('You have already sent a message! Each person can only send one message to keep the chain special. 🚲');
-                return;
-            }
-            
             const name = document.getElementById('user-name').value;
             const message = document.getElementById('user-msg').value;
             if(!message.trim()) return;
@@ -201,21 +192,11 @@ const updateUI = (lang) => {
             document.getElementById('user-msg').value = "";
             document.getElementById('user-name').value = "";
             
-            // Mesaj gönderildi flag'ini ayarla
-            hasSubmittedMessage = true;
-            localStorage.setItem('hasSubmittedMessage', 'true');
-            
             alert(window.currentBagMsg);
         };
 
         window.closeModal = () => document.getElementById('msg-modal').classList.remove('active');
         document.getElementById('view-btn').onclick = () => {
-            // Önce mesaj gönderilip gönderilmediğini kontrol et
-            if (!hasSubmittedMessage) {
-                alert('Please leave a message first before viewing all messages! 📝');
-                return;
-            }
-            
             document.getElementById('msg-modal').classList.add('active');
             
             // Coffee Legends koleksiyonunu yükle
